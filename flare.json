@@ -1,19 +1,14 @@
-{
-  "id": 1,
- "name": "flare",
- "children": [
-  {
-    "id": 2,
-   "name": "analytics",
-   "children": [
-    {
-      "id": 3,
-     "name": "cluster",
-     "children": [
-      {"id": 4,"name": "AgglomerativeCluster"},
-      {"id": 5, "name": "CommunityStructure"  }
-     ]
-    }
-
- ]
-}]} 
+{"id": 1, "name": "flare", "children": [
+  {"id": 2, "name": "analytics", "children": [
+    {"id": 3, "name": "cluster", "children": [
+        {"id": 4,"name": "AgglomerativeCluster"},
+        {"id": 5, "name": "CommunityStructure"  }
+      ]
+    }]
+  },
+  {"id": 6, "name": "whatever", "children": [
+    {"id": 7,"name": "AgglomerativeCluster"},
+    {"id": 8, "name": "CommunityStructure"  }
+  ]}
+  ]
+} 

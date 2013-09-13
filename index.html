@@ -7,13 +7,21 @@
 	<script src="dndTree.js"></script>
 	<link rel="stylesheet" href="dndTree.css">
 	<title>D3 Tree</title>
+<style>
+span.arrow {
+	display: inline-block;
+	width: 15px;
+}
+</style>
 </head>
 <body>
     <div id="chart"></div>
 
 <script type="text/javascript">
 $(function(){
-	dndTree.renderTree();
+	d3.json("flare.json", function(json) {
+		dndTree.renderTree(json);
+	});	
 });
     </script>
   </body>

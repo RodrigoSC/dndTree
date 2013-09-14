@@ -12,12 +12,37 @@
 
 	function dragEnd (d) {
 		console.log("Drag ended");
-		d3.select(this).attr("class", "node");
+		d3.selectAll("#dragging").remove();
+		d3.selectAll('.hovered').classed('hovered', false);
 	}
 
 	function move (d) {
-		console.log("Moving");
-		d3.select(this).attr("class", "node dragging");
+		// clean olde elements
+		d3.selectAll('#dragging').remove();
+		d3.selectAll('.hovered').classed('hovered', false);
+		// Create the drag element
+		var sel = d3.select(this);
+		var textC = sel.append('div')
+			.attr('id', 'dragging')
+			.style('left', d3.event.x + 10 + "px")
+			.style('top', d3.event.y + 10 + "px");
+		if (sel.classed('selected') && d3.selectAll('.selected')[0].length > 1) {
+			textC.insert('span').text("Multiple Selection");
+		} else {
+			textC.insert('span').text(d.name);
+		}
+		// Highlight elements that we're hovering
+		var hover = getHoveredElement (d3.event);
+		console.log(hover);
+		hover.classed('hovered', true);
+	}
+
+	function getHoveredElement (ev) {
+		var elem = document.elementFromPoint(ev.x, ev.y);
+		while (elem && elem.className != "node") {
+			elem = elem.parentElement;
+		}
+		return d3.select(elem);
 	}
 
 	function update(root) {
@@ -25,8 +50,8 @@
 
 		// Update the nodes…
 		var node = d3.select("#chart").selectAll('div.node')
-			.data(nodes, function(d) { return d.id; });
-		
+			.data(nodes, function(d) { return d.id; }).order();
+
 		node.transition()
 			.duration(duration)
 			.style("opacity", 1);
@@ -35,17 +60,13 @@
 			.attr("id", function(d) {return d.id;})
 			.attr("class", "node")
 			.style("padding-left", function(d){return d.depth * indent + "px";})
-			.style("opacity", 0)
 			.call(d3.behavior.drag().on("drag", move)
 				.on("dragend", dragEnd))
-			.on("click", click);
+			.on("click", toggleSelection);
 		
-		issueDiv.transition()
-			.duration(duration)
-			.style("opacity", 1);
-
 		issueDiv.append("span")
-			.attr("class", "arrow");
+			.classed("arrow", true)
+			.on("click", expandCollapse);
 		
 		issueDiv.append("a")
 			.attr("href", function(d){return "#" + d.id;})
@@ -57,30 +78,29 @@
 		node.select('span.name').text(function(d) { return " " + d.name; });
 		node.select("span.arrow").html(getNodeDecorator);
 
-		// Transition exiting nodes to the parent's new position.
-		node.exit().transition()
-			.duration(duration)
-			.style("opacity", 0)
-			.remove();
+		// Remove deleted notes
+		node.exit().remove();
+	}
+
+	function toggleSelection () {
+		var sel = d3.select(this);
+		if (!d3.event.metaKey) {
+			d3.selectAll('.selected').classed('selected', false);
+		}
+		sel.classed("selected", !sel.classed("selected"));
 	}
 
 	function getNodeDecorator (d) {
-		if (d.children) return "&#9663;"; 
-		if (d._children) return "&#9657;"; 
+		if (d.children) return "&#9663;"; // Down arrow
+		if (d._children) return "&#9657;";  // Right arrow
 		return "&nbsp;";
 	}
 
-	// Toggle children on click.
-	function click(d, e) {
-		if (d3.event.defaultPrevented) return;
-		// console.log("Clicked");
-		if (d.children) {
-			d._children = d.children;
-			d.children = null;
-		} else {
-			d.children = d._children;
-			d._children = null;
-		}
+	function expandCollapse(d, e) {
+		d3.event.stopPropagation();
+		if (d.children) { d._children = d.children; d.children = null;}
+		else { d.children = d._children; d._children = null;}
 		update(dndTree.root);
+		return false;
 	}
 })(window.dndTree = window.dndTree || {});

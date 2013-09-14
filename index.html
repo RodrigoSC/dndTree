@@ -7,12 +7,6 @@
 	<script src="dndTree.js"></script>
 	<link rel="stylesheet" href="dndTree.css">
 	<title>D3 Tree</title>
-<style>
-span.arrow {
-	display: inline-block;
-	width: 15px;
-}
-</style>
 </head>
 <body>
     <div id="chart"></div>
@@ -23,6 +17,12 @@ $(function(){
 		dndTree.renderTree(json);
 	});	
 });
+
+function change() {
+	d3.json("flare2.json", function(json) {
+		dndTree.renderTree(json);
+	});	
+}
     </script>
   </body>
 </html>

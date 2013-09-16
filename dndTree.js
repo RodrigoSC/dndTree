@@ -1,32 +1,40 @@
 (function(dndTree){
-	var indent = 20,
-	duration = 100;
-	dndTree.root = {};
+	var indent = 15,
+	height = 22,
+	duration = 200;
+	dndTree.root = {},
+	chart = {},
+	vis = {},
+	tree = d3.layout.tree();
 
-	dndTree.renderTree = function (root) {
-		dndTree.root = root;
-		update (dndTree.root);
+	dndTree.prepareTree = function (divId) {
+		chart = d3.select("#chart");
+		chart.selectAll('svg').remove();
+		vis = chart.append('svg');
 	}
 
-	var tree = d3.layout.tree();
+	dndTree.update = function (root) {
+		dndTree.root = root;
+		update (dndTree.root);		
+	}
 
 	function dragEnd (d) {
 		console.log("Drag ended");
-		d3.selectAll("#dragging").remove();
-		d3.selectAll('.hovered').classed('hovered', false);
+		chart.selectAll("#dragging").remove();
+		vis.selectAll('.hovered').classed('hovered', false);
 	}
 
 	function move (d) {
-		// clean olde elements
-		d3.selectAll('#dragging').remove();
-		d3.selectAll('.hovered').classed('hovered', false);
+		// clean old elements
+		chart.selectAll('#dragging').remove();
+		chart.selectAll('.hovered').classed('hovered', false);
 		// Create the drag element
-		var sel = d3.select(this);
-		var textC = sel.append('div')
+		var textC = chart.append('div')
 			.attr('id', 'dragging')
 			.style('left', d3.event.x + 10 + "px")
 			.style('top', d3.event.y + 10 + "px");
-		if (sel.classed('selected') && d3.selectAll('.selected')[0].length > 1) {
+		// Check what should be inside the selection
+		if (d3.select(this).classed('selected') && vis.selectAll('.selected')[0].length > 1) {
 			textC.insert('span').text("Multiple Selection");
 		} else {
 			textC.insert('span').text(d.name);
@@ -38,8 +46,8 @@
 	}
 
 	function getHoveredElement (ev) {
-		var elem = document.elementFromPoint(ev.x, ev.y);
-		while (elem && elem.className != "node") {
+		var elem = document.elementFromPoint(ev.sourceEvent.clientX, ev.sourceEvent.clientY);
+		while (elem && !elem.classList.contains('node')) {
 			elem = elem.parentElement;
 		}
 		return d3.select(elem);
@@ -47,39 +55,63 @@
 
 	function update(root) {
 		var nodes = tree.nodes(root);
+		var width = chart.node().getBoundingClientRect().width;
+
+		nodes.forEach(function(d, i) {
+			d.x = d.depth * indent;
+        	d.y = i * height;
+		});
 
 		// Update the nodes…
-		var node = d3.select("#chart").selectAll('div.node')
+		var node = vis.selectAll('g.node')
 			.data(nodes, function(d) { return d.id; }).order();
 
 		node.transition()
 			.duration(duration)
 			.style("opacity", 1);
 
-		var issueDiv = node.enter().insert("div")
+		var issue = node.enter().append("g")
 			.attr("id", function(d) {return d.id;})
 			.attr("class", "node")
-			.style("padding-left", function(d){return d.depth * indent + "px";})
+			.style("opacity", 0)
+			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";})
 			.call(d3.behavior.drag().on("drag", move)
 				.on("dragend", dragEnd))
 			.on("click", toggleSelection);
 		
-		issueDiv.append("span")
+		issue.append('rect')
+			.attr("x", indent*3/4)
+			.classed('issue', true)
+			.attr('height', height)	
+			.attr('width',  function(d) {return width - d.depth*indent - 300});
+		
+		issue.append("text")
+			.attr("y", height*3/4)
 			.classed("arrow", true)
 			.on("click", expandCollapse);
-		
-		issueDiv.append("a")
-			.attr("href", function(d){return "#" + d.id;})
-			.text(function(d) { return "#" + d.id; });
-		
-		issueDiv.append("span").attr("class", "name");
+
+		issue = issue.append("text")
+			.attr("x", indent)
+			.attr("y", height*3/4);
+				
+		issue.append("tspan")
+			.classed("link", true)
+			.text(function(d) { return "#" + d.id; })
+			.on("click", function(d){window.location = "#" + d.id;});
+
+		issue.append("tspan").attr("class", "name");
+
 
 		// Update the elements of the tree
-		node.select('span.name').text(function(d) { return " " + d.name; });
-		node.select("span.arrow").html(getNodeDecorator);
+		node.select('tspan.name').transition().duration(duration).text(function(d) { return " " + d.name; });
+		node.select('text.arrow').text(getNodeDecorator);
+		
+		node.transition().duration(duration)
+			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";})
+			.style("opacity",1);
 
 		// Remove deleted notes
-		node.exit().remove();
+		node.exit().transition().duration(duration).style('opacity', 0).remove();
 	}
 
 	function toggleSelection () {
@@ -91,9 +123,8 @@
 	}
 
 	function getNodeDecorator (d) {
-		if (d.children) return "&#9663;"; // Down arrow
-		if (d._children) return "&#9657;";  // Right arrow
-		return "&nbsp;";
+		if (d.children) return "\u25BF"; // Down arrow
+		if (d._children) return "\u25B9";  // Right arrow
 	}
 
 	function expandCollapse(d, e) {

@@ -5,8 +5,8 @@
   ]},
   {"id": 2, "name": "analytics", "children": [
     {"id": 3, "name": "cluster", "children": [
-        {"id": 4,"name": "AgglomerativeCluster"},
-        {"id": 5, "name": "CommunityStructure"  }
+        {"id": 4,"name": "Bollocks"},
+        {"id": 5, "name": "Something Interesting"  }
       ]
     }]
   }

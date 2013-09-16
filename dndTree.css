@@ -3,23 +3,34 @@ html, body {
     font-size: 15px;
 }
 
-span.arrow {
-    display: inline-block;
-    width: 15px;
+#chart {
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
-div.node {
+g.node {
     cursor: default;
     background-color: rgba(0, 0, 0, 0.1);
 }
 
-div.hovered {
-    background-color: rgba(255, 255, 0, 0.1);
+rect.issue {
+    fill: rgba(128, 0, 128, 0.1);;   
 }
 
-div.selected {
+g.hovered rect {
+    fill: rgba(255, 255, 0, 0.1);
+}
+
+g.selected {
     font-weight: bold;
-    background-color: rgba(255, 0, 0, 0.1);
+}
+
+g.selected rect {
+    fill: rgba(255, 0, 0, 0.1);   
+}
+
+tspan.link {
+    fill: rgb(0,0,200);
+    text-decoration: underline;
 }
 
 #dragging {

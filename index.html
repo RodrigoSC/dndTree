@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html xmlns:xlink="http://www.w3.org/1999/xlink">
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -13,14 +13,13 @@
 
 <script type="text/javascript">
 $(function(){
-	d3.json("flare.json", function(json) {
-		dndTree.renderTree(json);
-	});	
+	dndTree.prepareTree("#chart");
+	load(1);
 });
 
-function change() {
-	d3.json("flare2.json", function(json) {
-		dndTree.renderTree(json);
+function load(nbr) {
+	d3.json("flare" + (nbr == 2 ? 2 : "") + ".json", function(json) {
+		dndTree.update(json);
 	});	
 }
     </script>

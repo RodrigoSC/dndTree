@@ -13,19 +13,24 @@ g.node {
 }
 
 rect.issue {
-    fill: rgba(128, 0, 128, 0.1);;   
+    fill: rgba(128, 0, 128, 0.1);
 }
 
-g.hovered rect {
-    fill: rgba(255, 255, 0, 0.1);
+rect.dropArea {
+    fill: rgba(0, 0, 0, 0);
 }
 
 g.selected {
     font-weight: bold;
 }
 
-g.selected rect {
+g.selected rect.issue {
     fill: rgba(255, 0, 0, 0.1);   
+}
+
+
+g.hovered rect.issue {
+    fill: rgba(255, 255, 0, 0.1);
 }
 
 tspan.link {
@@ -37,4 +42,9 @@ tspan.link {
     background-color: rgba(0, 255, 0, 0.1);
     position: absolute;
     font-weight: normal;
+}
+
+#marker {
+    stroke: black;
+    stroke-width: 1px;
 }

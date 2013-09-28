@@ -14,8 +14,14 @@
 <script type="text/javascript">
 $(function(){
 	dndTree.prepareTree("#chart");
-	load(1);
+	loadissues();
 });
+
+function loadissues (){
+	d3.json("issues.json", function(json) {
+		dndTree.update(json);
+	});	
+} 
 
 function load(nbr) {
 	d3.json("flare" + (nbr == 2 ? 2 : "") + ".json", function(json) {

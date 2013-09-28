@@ -1,14 +1,14 @@
 (function(dndTree){
 	var indent = 15,
 	height = 22,
-	duration = 200;
-	dndTree.root = {},
+	duration = 200,
 	chart = {},
 	vis = {},
 	tree = d3.layout.tree();
+	dndTree.root = {};
 
 	dndTree.prepareTree = function (divId) {
-		chart = d3.select("#chart");
+		chart = d3.select(divId);
 		chart.selectAll('svg').remove();
 		vis = chart.append('svg');
 	}
@@ -19,15 +19,15 @@
 	}
 
 	function dragEnd (d) {
+		var nodes = getHoveredNodes(d3.event);
 		console.log("Drag ended");
-		chart.selectAll("#dragging").remove();
-		vis.selectAll('.hovered').classed('hovered', false);
+		console.log("Between " + nodes.top.attr('id') + " and " 
+			+ nodes.bottom.attr('id') + " depth " + nodes.depth);
+		cleanDnD ();
 	}
 
 	function move (d) {
-		// clean old elements
-		chart.selectAll('#dragging').remove();
-		chart.selectAll('.hovered').classed('hovered', false);
+		cleanDnD ();
 		// Create the drag element
 		var textC = chart.append('div')
 			.attr('id', 'dragging')
@@ -40,9 +40,33 @@
 			textC.insert('span').text(d.name);
 		}
 		// Highlight elements that we're hovering
-		var hover = getHoveredElement (d3.event);
-		console.log(hover);
-		hover.classed('hovered', true);
+		var nodes = getHoveredNodes(d3.event);
+		// If we're hovering something
+		if (nodes.hovered.node()) {
+			nodes.hovered.classed('hovered', true);
+			nodes.top.append('line')
+				.attr('id', 'marker')
+				.attr('x2', 100)
+				.attr('transform', 
+					"translate(" + (3/4*indent + nodes.depth * indent) + "," + height + ")" );
+		}
+	}
+
+	function getHoveredNodes (ev) {
+		var hover = getHoveredElement (ev);
+		var nodes = {bottom: hover, top: hover, hovered: hover, depth: 0}
+		if (hover.node()) {
+			var coords = d3.mouse(hover.node());
+			nodes.top = coords[1] > height/2 ? hover : d3.select(hover.node().previousSibling);
+			nodes.bottom = d3.select(nodes.top.node().nextSibling);
+			var coords = d3.mouse(nodes.top.node());
+			nodes.depth = coords[0] > 0 ? 0 : Math.ceil((coords[0] + 5)/ indent)-1;
+			var topDepth = nodes.top.datum().depth;
+			var bottomDepth = nodes.bottom.datum().depth;
+			nodes.depth = Math.max(nodes.depth, bottomDepth - topDepth);
+			
+		}
+		return nodes;
 	}
 
 	function getHoveredElement (ev) {
@@ -56,11 +80,16 @@
 	function update(root) {
 		var nodes = tree.nodes(root);
 		var width = chart.node().getBoundingClientRect().width;
+		var totalHeight;
 
 		nodes.forEach(function(d, i) {
 			d.x = d.depth * indent;
         	d.y = i * height;
+        	totalHeight = d.y + height;
 		});
+
+		// set the height of the div
+		chart.style('height', totalHeight + "px");
 
 		// Update the nodes…
 		var node = vis.selectAll('g.node')
@@ -70,8 +99,8 @@
 			.duration(duration)
 			.style("opacity", 1);
 
-		var issue = node.enter().append("g")
-			.attr("id", function(d) {return d.id;})
+		var issue = node.enter().insert("g")
+			.attr("id", function(d) {return 'i' + d.id;})
 			.attr("class", "node")
 			.style("opacity", 0)
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";})
@@ -79,6 +108,12 @@
 				.on("dragend", dragEnd))
 			.on("click", toggleSelection);
 		
+		issue.append('rect')
+			.attr("x", function (d) {return - d.depth * indent})
+			.classed('dropArea', true)
+			.attr('height', height)	
+			.attr('width',  function(d) {return (d.depth+3/4)*indent});
+
 		issue.append('rect')
 			.attr("x", indent*3/4)
 			.classed('issue', true)
@@ -112,6 +147,12 @@
 
 		// Remove deleted notes
 		node.exit().transition().duration(duration).style('opacity', 0).remove();
+	}
+
+	function cleanDnD () {
+		chart.selectAll('#dragging').remove();
+		chart.selectAll('#marker').remove();
+		chart.selectAll('.hovered').classed('hovered', false);
 	}
 
 	function toggleSelection () {

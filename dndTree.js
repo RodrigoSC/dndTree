@@ -39,7 +39,19 @@
 			console.log ("Sibling: " + (sib ? sib.id : "Last Node") + " New Sibling: " + (info.sibling ? info.sibling.id : "Last Node"));
 		}
 		// Remove the element
-		//d.parent.children.splice(d.parent.children.indexOf(d),1);
+		d.parent.children.splice(d.parent.children.indexOf(d),1)
+		if (d.parent.children.length == 0) delete d.parent.children;
+		// Add in the new position
+		if (!info.sibling) {
+			if (info.parent.children) {
+				info.parent.children.push(d);
+			} else {
+				info.parent.children=[d];
+			}
+		} else {
+			info.parent.children.splice(info.parent.children.indexOf(info.sibling), 0, d);
+		}
+		d.parent = info.parent;
 		update (dndTree.root);
 		cleanDnD ();
 	}
@@ -49,23 +61,24 @@
 		var sib = getSibling (d);
 		if (!sib && !info.sibling) return true;
 		if (info.sibling) {
-			if (info.sibling.id == d.id) return true;	
+			if (info.sibling.id == d.id) return true;
+			if (!sib) return false;
 			return sib.id == info.sibling.id;
 		}
 		return !sib;
-		
 	}
 
 	function move (d) {
 		cleanDnD ();
-		if (!dragging) dragging = Math.abs(d3.event.sourceEvent.x - startpos.x) > 5 || Math.abs(d3.event.sourceEvent.y - startpos.y) > 5;
+		if (!dragging) dragging = Math.abs(d3.event.sourceEvent.x - startpos.x) > 5 || 
+									Math.abs(d3.event.sourceEvent.y - startpos.y) > 5;
 		if (!dragging) return;
 		dragging = true;
 		// Create the drag element
 		var textC = chart.append('div')
 			.attr('id', 'dragging')
-			.style('left', d3.event.sourceEvent.x + 10 + "px")
-			.style('top', d3.event.sourceEvent.y + 10 + "px");
+			.style('left', d3.event.x + d.x + 10 + "px")
+			.style('top', d3.event.y + d.y + 10 + "px");
 		// Check what should be inside the selection
 		if (getSelection(this).size() > 1) {
 			textC.insert('span').text("Multiple Selection");
@@ -170,7 +183,7 @@
 			.style("opacity", 1);
 
 		// the main group
-		var issue = node.enter().insert("g")
+		var line = node.enter().insert("g")
 			.attr("id", function(d) {return 'i' + d.id;})
 			.attr("class", "node")
 			.style("opacity", 0)
@@ -178,32 +191,33 @@
 			.on("click", toggleSelection);
 		
 		// Just a rectangle to trap events to the left of the element
-		issue.append('rect')
+		line.append('rect')
 			.attr("x", function (d) {return - d.depth * indent})
 			.classed('dropArea', true)
 			.attr('height', height)	
 			.attr('width',  function(d) {return (d.depth+3/4)*indent});
 
-		issue.append("text")
+		line.append("text")
 			.attr("y", height*3/4)
 			.classed("arrow", true)
 			.on("click", expandCollapse);
 
 		// The issue rectangle
+		var issue =  line.append('g')
+			.call(d3.behavior.drag().on("drag", move)
+				.on("dragstart", dragStart)
+				.on("dragend", dragEnd));
+
 		issue.append('rect')
 			.attr("x", indent*3/4)
 			.classed('issue', true)
 			.attr('height', height)	
 			.attr('width',  function(d) {return width - d.depth*indent - 300});
 
-		var issueText = issue.append('g')
-			.call(d3.behavior.drag().on("drag", move)
-				.on("dragstart", dragStart)
-				.on("dragend", dragEnd))
-			.append("text")
+		var issueText = issue.append("text")
 			.attr("x", indent)
 			.attr("y", height*3/4);
-				
+	
 		issueText.append("tspan")
 			.classed("link", true)
 			.text(function(d) { return "#" + d.id; })

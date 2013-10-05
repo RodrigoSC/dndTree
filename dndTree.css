@@ -28,12 +28,6 @@ g.selected rect.issue {
     fill: rgba(255, 0, 0, 0.1);   
 }
 
-/*
-g.hovered rect.issue {
-    fill: rgba(255, 255, 0, 0.1);
-}
-*/
-
 tspan.link {
     fill: rgb(0,0,200);
     text-decoration: underline;
@@ -48,4 +42,8 @@ tspan.link {
 #marker {
     stroke: black;
     stroke-width: 1px;
+}
+
+#marker.illegal {
+    stroke: red;
 }

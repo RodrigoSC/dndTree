@@ -20,24 +20,12 @@
 		update (dndTree.root);
 	}
 
-	function dragStart (d) {
-		startpos = {x: d3.event.sourceEvent.x, y: d3.event.sourceEvent.y};
-	}
-
 	function dragEnd (d) {
 		if (!dragging) return;
 		dragging = false;
-		var info = getHoverInfo(this, d3.event);
-		// Check if it stays the same
-		if (samePosition(d, info)) {
-			console.log ('Drag ended and nothing changed');
-			cleanDnD ();
-			return;
-		} else {
-			var sib = getSibling(d);
-			console.log ("Parent:" + d.parent.id + " New Parent: " + info.parent.id);
-			console.log ("Sibling: " + (sib ? sib.id : "Last Node") + " New Sibling: " + (info.sibling ? info.sibling.id : "Last Node"));
-		}
+		var info = getHoverInfo(d, d3.event);
+		cleanDnD ();
+		if (info.illegal || samePosition(d, info)) return;
 		// Remove the element
 		d.parent.children.splice(d.parent.children.indexOf(d),1)
 		if (d.parent.children.length == 0) delete d.parent.children;
@@ -53,7 +41,6 @@
 		}
 		d.parent = info.parent;
 		update (dndTree.root);
-		cleanDnD ();
 	}
 
 	function samePosition (d, info) {
@@ -80,61 +67,55 @@
 			.style('left', d3.event.x + d.x + 10 + "px")
 			.style('top', d3.event.y + d.y + 10 + "px");
 		// Check what should be inside the selection
-		if (getSelection(this).size() > 1) {
-			textC.insert('span').text("Multiple Selection");
-		} else {
-			textC.insert('span').text(d.name);
-		}
-		// Highlight elements that we're hovering
-		var info = getHoverInfo(this, d3.event);
+		textC.insert('span').text(d.name);
 		// If we're hovering something
+		var info = getHoverInfo(d, d3.event);
 		if (!info.hovered.empty()) {
 			info.hovered.classed('hovered', true);
 			info.top.append('line')
 				.attr('id', 'marker')
 				.attr('x2', 100)
+				.classed('illegal', info.illegal)
 				.attr('transform', 
 					"translate(" + (3/4*indent + info.depth * indent) + "," + height + ")" );
 		}
 	}
 
-	function getSelection(draggedElem) {
-		if (d3.select(draggedElem).classed('selected') && vis.selectAll('.selected').size() > 1)
-			return vis.selectAll('.selected');
-		else
-			return d3.select(this);
-	}
-
-	function getHoverInfo (draggedElem, ev) {
+	function getHoverInfo (d, ev) {
 		var hover = getHoveredElement (ev);
-		var info = {bottom: hover, top: hover, hovered: hover, depth: 0, recursive: false}
+		var info = {hovered: hover, depth: 0, illegal: false}
 		if (!hover.empty()) {
 			var coords = d3.mouse(hover.node());
-			// See which element should be on top of the selection
+			// See which element should be on top of the marker
 			info.top = coords[1] > height/2 ? hover : d3.select(hover.node().previousSibling);
 			if (!info.top.empty()) {
-				info.bottom = d3.select(info.top.node().nextSibling);
+				var bottom = d3.select(info.top.node().nextSibling);
 				var coords = d3.mouse(info.top.node());
 				info.depth = coords[0] > 0 ? 
-					(coords[0] < indent * 20 ? 0 : 1) : 
+					(coords[0] < indent * 15 ? 0 : 1) : 
 					Math.ceil((coords[0] + 5)/ indent)-1;
 				var topDepth = info.top.datum().depth;
-				var bottomDepth = info.bottom.empty() ? 0 : info.bottom.datum().depth;
+				var bottomDepth = bottom.empty() ? 1 : bottom.datum().depth;
 				info.depth = Math.max(info.depth, bottomDepth - topDepth);
 				// Get the parent node
 				info.parent = info.top.datum();
 				for (var i = info.depth; i < 1; i++) {
 					info.parent = info.parent.parent;
 				}
+				// Make sure the dragged node is not in the hierarchy
+				var parent = info.parent; 
+				while(parent) {
+					if (parent.id == d.id)  {
+						info.illegal = true;
+						break;
+					}
+					parent = parent.parent;
+				}
 				// Get the placement sibling node
-				if (!info.bottom.empty()) {
-					info.sibling = info.bottom.datum();
+				if (!bottom.empty()) {
+					info.sibling = bottom.datum();
 					if (info.sibling.parent != info.parent)
 						delete info.sibling;
-					// TODO: Check if the drag leads to recursion
-					getSelection(draggedElem).forEach(function (d, i) {
-				
-					});
 				}
 			}
 		}
@@ -187,15 +168,12 @@
 			.attr("id", function(d) {return 'i' + d.id;})
 			.attr("class", "node")
 			.style("opacity", 0)
-			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";})
-			.on("click", toggleSelection);
+			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";});
 		
 		// Just a rectangle to trap events to the left of the element
 		line.append('rect')
-			.attr("x", function (d) {return - d.depth * indent})
 			.classed('dropArea', true)
-			.attr('height', height)	
-			.attr('width',  function(d) {return (d.depth+3/4)*indent});
+			.attr('height', height);
 
 		line.append("text")
 			.attr("y", height*3/4)
@@ -211,8 +189,7 @@
 		issue.append('rect')
 			.attr("x", indent*3/4)
 			.classed('issue', true)
-			.attr('height', height)	
-			.attr('width',  function(d) {return width - d.depth*indent - 300});
+			.attr('height', height);
 
 		var issueText = issue.append("text")
 			.attr("x", indent)
@@ -230,6 +207,10 @@
 		// Update the elements of the tree
 		node.select('tspan.name').transition().duration(duration).text(function(d) { return " " + d.name; });
 		node.select('text.arrow').text(getNodeDecorator);
+		node.select('rect.issue').attr('width',  function(d) {return width - d.depth*indent - 300});
+		node.select('rect.dropArea')
+			.attr("x", function (d) {return - d.depth * indent})
+			.attr('width',  function(d) {return (d.depth+3/4)*indent});
 		
 		node.transition().duration(duration)
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";})
@@ -239,18 +220,14 @@
 		node.exit().transition().duration(duration).style('opacity', 0).remove();
 	}
 
+	function dragStart (d) {
+		startpos = {x: d3.event.sourceEvent.x, y: d3.event.sourceEvent.y};
+	}
+
 	function cleanDnD () {
 		chart.selectAll('#dragging').remove();
 		chart.selectAll('#marker').remove();
 		chart.selectAll('.hovered').classed('hovered', false);
-	}
-
-	function toggleSelection () {
-		var sel = d3.select(this);
-		if (!d3.event.metaKey) {
-			d3.selectAll('.selected').classed('selected', false);
-		}
-		sel.classed("selected", !sel.classed("selected"));
 	}
 
 	function getNodeDecorator (d) {

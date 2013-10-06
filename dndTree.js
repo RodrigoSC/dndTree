@@ -1,24 +1,16 @@
-(function(dndTree){
+var dndTree = function(divId){
 	var indent = 15,
 	height = 22,
 	duration = 200,
-	chart = {},
-	vis = {},
 	dragging = false,
 	startpos = {},
 	tree = d3.layout.tree();
-	dndTree.root = {};
+	
+	var that = this;
 
-	dndTree.prepareTree = function (divId) {
-		chart = d3.select(divId);
-		chart.selectAll('svg').remove();
-		vis = chart.append('svg');
-	}
-
-	dndTree.update = function (root) {
-		dndTree.root = root;	
-		update (dndTree.root);
-	}
+	var chart = d3.select(divId);
+	chart.selectAll('svg').remove();
+	var vis = chart.append('svg');
 
 	function dragEnd (d) {
 		if (!dragging) return;
@@ -40,7 +32,7 @@
 			info.parent.children.splice(info.parent.children.indexOf(info.sibling), 0, d);
 		}
 		d.parent = info.parent;
-		update (dndTree.root);
+		that.update (that.root);
 	}
 
 	function samePosition (d, info) {
@@ -57,8 +49,8 @@
 
 	function move (d) {
 		cleanDnD ();
-		if (!dragging) dragging = Math.abs(d3.event.sourceEvent.x - startpos.x) > 5 || 
-									Math.abs(d3.event.sourceEvent.y - startpos.y) > 5;
+		if (!dragging) dragging = Math.abs(d3.event.sourceEvent.screenX - startpos.x) > 5 || 
+									Math.abs(d3.event.sourceEvent.screenY - startpos.y) > 5;
 		if (!dragging) return;
 		dragging = true;
 		// Create the drag element
@@ -118,6 +110,8 @@
 						delete info.sibling;
 				}
 			}
+		} else {
+			info.illegal = true;
 		}
 		return info;
 	}
@@ -138,7 +132,7 @@
 		return d3.select(elem);
 	}
 
-	function update(root) {
+	function innerUpdate(root) {
 		var nodes = tree.nodes(root);
 		var totalHeight;
 
@@ -207,7 +201,7 @@
 		// Update the elements of the tree
 		node.select('tspan.name').transition().duration(duration).text(function(d) { return " " + d.name; });
 		node.select('text.arrow').text(getNodeDecorator);
-		node.select('rect.issue').attr('width',  function(d) {return width - d.depth*indent - 300});
+		node.select('rect.issue').attr('width',  function(d) {return width - d.depth*indent});
 		node.select('rect.dropArea')
 			.attr("x", function (d) {return - d.depth * indent})
 			.attr('width',  function(d) {return (d.depth+3/4)*indent});
@@ -221,7 +215,7 @@
 	}
 
 	function dragStart (d) {
-		startpos = {x: d3.event.sourceEvent.x, y: d3.event.sourceEvent.y};
+		startpos = {x: d3.event.sourceEvent.screenX, y: d3.event.sourceEvent.screenY};
 	}
 
 	function cleanDnD () {
@@ -241,4 +235,9 @@
 		update(dndTree.root);
 		return false;
 	}
-})(window.dndTree = window.dndTree || {});
+
+	this.update = function(root) {
+		this.root = root;
+		innerUpdate (this.root);
+	}
+}

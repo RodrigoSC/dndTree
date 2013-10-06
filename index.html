@@ -10,22 +10,23 @@
 </head>
 <body>
     <div id="chart"></div>
+    <div id="bob"></div>
 
 <script type="text/javascript">
 $(function(){
-	dndTree.prepareTree("#chart");
+	window.tree = new dndTree("#chart");
 	loadissues();
 });
 
 function loadissues (){
 	d3.json("issues.json", function(json) {
-		dndTree.update(json);
+		tree.update(json);
 	});	
 } 
 
 function load(nbr) {
 	d3.json("flare" + (nbr == 2 ? 2 : "") + ".json", function(json) {
-		dndTree.update(json);
+		tree.update(json);
 	});	
 }
     </script>
